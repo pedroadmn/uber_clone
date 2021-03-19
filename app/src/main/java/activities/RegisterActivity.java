@@ -130,7 +130,7 @@ public class RegisterActivity extends AppCompatActivity {
     }
 
     private void goToPassengerScreen() {
-        Intent intent = new Intent(this, MapsActivity.class);
+        Intent intent = new Intent(this, PassengerActivity.class);
         startActivity(intent);
         finish();
     }

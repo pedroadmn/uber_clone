@@ -90,16 +90,4 @@ public class LoginActivity extends AppCompatActivity {
                         Toast.LENGTH_SHORT).show();
             }
     }
-
-    private void goToPassengerScreen() {
-        Intent intent = new Intent(this, MapsActivity.class);
-        startActivity(intent);
-        finish();
-    }
-
-    private void goToDriverScreen() {
-        Intent intent = new Intent(this, RequestsActivity.class);
-        startActivity(intent);
-        finish();
-    }
 }

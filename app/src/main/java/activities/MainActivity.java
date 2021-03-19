@@ -77,12 +77,7 @@ public class MainActivity extends AppCompatActivity {
         builder.setTitle("Denied Permissions");
         builder.setMessage("To use the app is necessary accept the permissions");
         builder.setCancelable(false);
-        builder.setPositiveButton("Confirm", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialogInterface, int i) {
-                finish();
-            }
-        });
+        builder.setPositiveButton("Confirm", (dialogInterface, i) -> finish());
 
         AlertDialog dialog = builder.create();
         dialog.show();

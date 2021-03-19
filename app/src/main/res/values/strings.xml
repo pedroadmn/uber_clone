@@ -3,4 +3,6 @@
     <string name="title_activity_maps">Map</string>
     <string name="register_title">Map</string>
     <string name="login_title">Map</string>
+    <string name="title_activity_passenger">PassengerActivity</string>
+    <string name="logout">Logout</string>
 </resources>

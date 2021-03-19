@@ -16,7 +16,7 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.ValueEventListener;
 
-import activities.MapsActivity;
+import activities.PassengerActivity;
 import activities.RequestsActivity;
 import models.User;
 
@@ -72,7 +72,7 @@ public class FirebaseUserHelper {
                         Intent intent = new Intent(activity, RequestsActivity.class);
                         activity.startActivity(intent);
                     } else {
-                        Intent intent = new Intent(activity, MapsActivity.class);
+                        Intent intent = new Intent(activity, PassengerActivity.class);
                         activity.startActivity(intent);
                     }
                 }
