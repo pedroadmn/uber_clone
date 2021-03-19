@@ -6,6 +6,7 @@ import android.widget.Button;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import helpers.FirebaseUserHelper;
 import pedroadmn.uberclone.com.R;
 
 public class MainActivity extends AppCompatActivity {
@@ -39,5 +40,12 @@ public class MainActivity extends AppCompatActivity {
     private void initializeComponents() {
         btEnter = findViewById(R.id.btEnter);
         btRegister = findViewById(R.id.btRegister);
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+
+        FirebaseUserHelper.redirectLoggedUser(this);
     }
 }
