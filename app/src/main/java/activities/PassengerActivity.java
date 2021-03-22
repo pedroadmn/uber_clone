@@ -1,7 +1,10 @@
 package activities;
 
 import android.Manifest;
+import android.content.DialogInterface;
 import android.content.pm.PackageManager;
+import android.location.Address;
+import android.location.Geocoder;
 import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
@@ -9,8 +12,12 @@ import android.os.Looper;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
@@ -31,10 +38,18 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.firebase.auth.FirebaseAuth;
 
+import java.io.IOException;
+import java.util.List;
+import java.util.Locale;
+
 import helpers.FirebaseConfig;
+import models.Destine;
 import pedroadmn.uberclone.com.R;
 
 public class PassengerActivity extends AppCompatActivity implements OnMapReadyCallback {
+
+    private EditText etDestineLocation;
+    private Button btCallUber;
 
     private GoogleMap mMap;
 
@@ -56,20 +71,73 @@ public class PassengerActivity extends AppCompatActivity implements OnMapReadyCa
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_passenger);
 
-        firebaseAuth = FirebaseConfig.getAuthFirebase();
+        initializeComponents();
 
-        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
-        mSettingsClient = LocationServices.getSettingsClient(this);
+        btCallUber.setOnClickListener(v -> callUber());
 
         getSupportActionBar().setTitle("Start a new trip");
-
-        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
-                .findFragmentById(R.id.map);
-        mapFragment.getMapAsync(this);
 
         requestPermissionIfRequired();
 
         startLocationUpdates();
+    }
+
+    private void callUber() {
+        String destineAddress = etDestineLocation.getText().toString();
+
+        if (destineAddress != null && !destineAddress.equals("")) {
+            Address address = getAddress(destineAddress);
+
+            if (address != null) {
+                Destine destine = new Destine();
+                destine.setCity(address.getAdminArea());
+                destine.setPostalCode(address.getPostalCode());
+                destine.setNeighborhood(address.getSubLocality());
+                destine.setStreet(address.getThoroughfare());
+                destine.setNumber(address.getFeatureName());
+                destine.setLatitude(String.valueOf(address.getLatitude()));
+                destine.setLongitude(String.valueOf(address.getLongitude()));
+
+                StringBuilder message = new StringBuilder();
+                message.append("City: " + destine.getCity());
+                message.append("\nStreet: " + destine.getStreet());
+                message.append("\nNeighborhood: " + destine.getNeighborhood());
+                message.append("\nNumber: " + destine.getNumber());
+                message.append("\nPostal code: " + destine.getPostalCode());
+
+                AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this)
+                        .setTitle("Confirm the address")
+                        .setMessage(message)
+                        .setPositiveButton("Confirm", (dialogInterface, i) -> {
+
+                        })
+                        .setNegativeButton("Cancel", (dialogInterface, i) -> {
+
+                        });
+
+                AlertDialog dialog = alertDialogBuilder.create();
+                dialog.show();
+            }
+        } else {
+            Toast.makeText(this, "Fill the destine address", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private Address getAddress(String destineAddress) {
+        Geocoder geocoder = new Geocoder(this, Locale.getDefault());
+
+        try {
+            List<Address> addressList = geocoder.getFromLocationName(destineAddress, 1);
+
+            if (addressList != null && !addressList.isEmpty()) {
+                Address address = addressList.get(0);
+                return address;
+            }
+        } catch (IOException ioException) {
+            ioException.printStackTrace();
+        }
+
+        return null;
     }
 
     private void requestPermissionIfRequired() {
@@ -172,5 +240,19 @@ public class PassengerActivity extends AppCompatActivity implements OnMapReadyCa
         } catch (Exception exception) {
             exception.printStackTrace();
         }
+    }
+
+    private void initializeComponents() {
+        etDestineLocation = findViewById(R.id.etDestineLocation);
+        btCallUber = findViewById(R.id.buttonCallUber);
+
+        firebaseAuth = FirebaseConfig.getAuthFirebase();
+
+        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+        mSettingsClient = LocationServices.getSettingsClient(this);
+
+        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
+                .findFragmentById(R.id.map);
+        mapFragment.getMapAsync(this);
     }
 }
