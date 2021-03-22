@@ -93,8 +93,6 @@ public class PassengerActivity extends AppCompatActivity implements OnMapReadyCa
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_passenger);
 
-        firebaseRef = FirebaseConfig.getFirebase();
-
         initializeComponents();
 
         getSupportActionBar().setTitle("Start a new trip");
@@ -335,6 +333,7 @@ public class PassengerActivity extends AppCompatActivity implements OnMapReadyCa
         llLocations = findViewById(R.id.llLocations);
 
         firebaseAuth = FirebaseConfig.getAuthFirebase();
+        firebaseRef = FirebaseConfig.getFirebase();
 
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         mSettingsClient = LocationServices.getSettingsClient(this);
