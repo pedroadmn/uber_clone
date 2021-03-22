@@ -3,9 +3,11 @@ package models;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.Exclude;
 
+import java.io.Serializable;
+
 import helpers.FirebaseConfig;
 
-public class User {
+public class User implements Serializable {
 
     private String userId;
     private String name;

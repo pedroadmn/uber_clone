@@ -17,6 +17,9 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity
+            android:name="activities.RaceActivity"
+            android:parentActivityName="activities.RequestsActivity"/>
+        <activity
             android:name="activities.PassengerActivity"
             android:label="@string/title_activity_passenger" />
         <activity android:name="activities.RequestsActivity" />

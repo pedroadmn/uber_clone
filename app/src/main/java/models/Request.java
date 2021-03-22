@@ -2,9 +2,11 @@ package models;
 
 import com.google.firebase.database.DatabaseReference;
 
+import java.io.Serializable;
+
 import helpers.FirebaseConfig;
 
-public class Request {
+public class Request implements Serializable {
 
     private String id;
     private String status;
