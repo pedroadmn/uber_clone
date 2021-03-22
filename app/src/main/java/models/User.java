@@ -13,6 +13,9 @@ public class User {
     private String password;
     private String type;
 
+    private String longitude;
+    private String latitude;
+
     public User() {
     }
 
@@ -55,6 +58,22 @@ public class User {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(String longitude) {
+        this.longitude = longitude;
+    }
+
+    public String getLatitude() {
+        return latitude;
+    }
+
+    public void setLatitude(String latitude) {
+        this.latitude = latitude;
     }
 
     public void save() {

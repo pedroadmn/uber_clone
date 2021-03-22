@@ -34,6 +34,15 @@ public class FirebaseUserHelper {
         return auth.getCurrentUser();
     }
 
+    public static User getLoggedUserInfo() {
+        FirebaseUser firebaseUser = getCurrentUser();
+        User user = new User();
+        user.setUserId(firebaseUser.getUid());
+        user.setEmail(firebaseUser.getEmail());
+        user.setName(firebaseUser.getDisplayName());
+        return user;
+    }
+
     public static boolean updateUsername(String name) {
         try {
             FirebaseUser user = getCurrentUser();

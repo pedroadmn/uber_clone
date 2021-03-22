@@ -43,7 +43,10 @@ import java.util.List;
 import java.util.Locale;
 
 import helpers.FirebaseConfig;
+import helpers.FirebaseUserHelper;
 import models.Destine;
+import models.Request;
+import models.User;
 import pedroadmn.uberclone.com.R;
 
 public class PassengerActivity extends AppCompatActivity implements OnMapReadyCallback {
@@ -63,6 +66,8 @@ public class PassengerActivity extends AppCompatActivity implements OnMapReadyCa
     private LocationSettingsRequest mLocationSettingsRequest;
     private LocationCallback mLocationCallback;
     private SettingsClient mSettingsClient;
+
+    private LatLng myLocal;
 
     public static final int WIFI_PERMISSION_RESULT = 888;
 
@@ -109,7 +114,7 @@ public class PassengerActivity extends AppCompatActivity implements OnMapReadyCa
                         .setTitle("Confirm the address")
                         .setMessage(message)
                         .setPositiveButton("Confirm", (dialogInterface, i) -> {
-
+                            saveRequest(destine);
                         })
                         .setNegativeButton("Cancel", (dialogInterface, i) -> {
 
@@ -121,6 +126,20 @@ public class PassengerActivity extends AppCompatActivity implements OnMapReadyCa
         } else {
             Toast.makeText(this, "Fill the destine address", Toast.LENGTH_SHORT).show();
         }
+    }
+
+    private void saveRequest(Destine destine) {
+        Request request = new Request();
+        request.setDestine(destine);
+
+        User passengerUser = FirebaseUserHelper.getLoggedUserInfo();
+        passengerUser.setLongitude(String.valueOf(myLocal.longitude));
+        passengerUser.setLatitude(String.valueOf(myLocal.latitude));
+
+        request.setPassenger(passengerUser);
+        request.setStatus(Request.STATUS_WAITING);
+
+        request.save();
     }
 
     private Address getAddress(String destineAddress) {
@@ -174,7 +193,7 @@ public class PassengerActivity extends AppCompatActivity implements OnMapReadyCa
 
                 double latitude = location.getLatitude();
                 double longitude = location.getLongitude();
-                LatLng myLocal = new LatLng(latitude, longitude);
+                myLocal = new LatLng(latitude, longitude);
 
                 mMap.clear();
                 mMap.addMarker(
