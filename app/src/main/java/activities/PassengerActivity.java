@@ -9,11 +9,14 @@ import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Looper;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -37,8 +40,15 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.Query;
+import com.google.firebase.database.ValueEventListener;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
@@ -53,6 +63,7 @@ public class PassengerActivity extends AppCompatActivity implements OnMapReadyCa
 
     private EditText etDestineLocation;
     private Button btCallUber;
+    private LinearLayout llLocations;
 
     private GoogleMap mMap;
 
@@ -60,7 +71,7 @@ public class PassengerActivity extends AppCompatActivity implements OnMapReadyCa
 
     private FusedLocationProviderClient mFusedLocationClient;
     private LocationRequest mLocationRequest;
-    private final int INTERVAL = 10000;
+    private final int INTERVAL = 3000;
     private final int FASTEST_INTERVAL = 1000;
     private final int UPDATE_NUMBER = 1;
     private LocationSettingsRequest mLocationSettingsRequest;
@@ -71,60 +82,113 @@ public class PassengerActivity extends AppCompatActivity implements OnMapReadyCa
 
     public static final int WIFI_PERMISSION_RESULT = 888;
 
+    private boolean calledUber = false;
+
+    private DatabaseReference firebaseRef;
+
+    private Request request;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_passenger);
 
-        initializeComponents();
+        firebaseRef = FirebaseConfig.getFirebase();
 
-        btCallUber.setOnClickListener(v -> callUber());
+        initializeComponents();
 
         getSupportActionBar().setTitle("Start a new trip");
 
+        btCallUber.setOnClickListener(v -> callUber());
+        
         requestPermissionIfRequired();
+    }
 
-        startLocationUpdates();
+    private void verifyRequestStatus() {
+        User loggedUser = FirebaseUserHelper.getLoggedUserInfo();
+        DatabaseReference requests = firebaseRef.child("requests");
+        Query requestSearch = requests.orderByChild("passenger/userId")
+                .equalTo(loggedUser.getUserId());
+
+        requestSearch.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                List<Request> requestList = new ArrayList<>();
+
+                for (DataSnapshot ds: snapshot.getChildren()) {
+                    requestList.add(ds.getValue(Request.class));
+                }
+
+                if (!requestList.isEmpty()) {
+                    Collections.reverse(requestList);
+                    request = requestList.get(0);
+
+
+                    switch (request.getStatus()) {
+                        case Request.STATUS_WAITING:
+                            llLocations.setVisibility(View.GONE);
+                            btCallUber.setText("Cancel");
+                            calledUber = true;
+                            break;
+                        case Request.STATUS_FINISHED:
+                            llLocations.setVisibility(View.VISIBLE);
+                            btCallUber.setText("Call Uber");
+                            calledUber = false;
+                            break;
+                    }
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
     }
 
     private void callUber() {
-        String destineAddress = etDestineLocation.getText().toString();
+        if (!calledUber) {
+            String destineAddress = etDestineLocation.getText().toString();
 
-        if (destineAddress != null && !destineAddress.equals("")) {
-            Address address = getAddress(destineAddress);
+            if (destineAddress != null && !destineAddress.equals("")) {
+                Address address = getAddress(destineAddress);
 
-            if (address != null) {
-                Destine destine = new Destine();
-                destine.setCity(address.getAdminArea());
-                destine.setPostalCode(address.getPostalCode());
-                destine.setNeighborhood(address.getSubLocality());
-                destine.setStreet(address.getThoroughfare());
-                destine.setNumber(address.getFeatureName());
-                destine.setLatitude(String.valueOf(address.getLatitude()));
-                destine.setLongitude(String.valueOf(address.getLongitude()));
+                if (address != null) {
+                    Destine destine = new Destine();
+                    destine.setCity(address.getAdminArea());
+                    destine.setPostalCode(address.getPostalCode());
+                    destine.setNeighborhood(address.getSubLocality());
+                    destine.setStreet(address.getThoroughfare());
+                    destine.setNumber(address.getFeatureName());
+                    destine.setLatitude(String.valueOf(address.getLatitude()));
+                    destine.setLongitude(String.valueOf(address.getLongitude()));
 
-                StringBuilder message = new StringBuilder();
-                message.append("City: " + destine.getCity());
-                message.append("\nStreet: " + destine.getStreet());
-                message.append("\nNeighborhood: " + destine.getNeighborhood());
-                message.append("\nNumber: " + destine.getNumber());
-                message.append("\nPostal code: " + destine.getPostalCode());
+                    StringBuilder message = new StringBuilder();
+                    message.append("City: " + destine.getCity());
+                    message.append("\nStreet: " + destine.getStreet());
+                    message.append("\nNeighborhood: " + destine.getNeighborhood());
+                    message.append("\nNumber: " + destine.getNumber());
+                    message.append("\nPostal code: " + destine.getPostalCode());
 
-                AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this)
-                        .setTitle("Confirm the address")
-                        .setMessage(message)
-                        .setPositiveButton("Confirm", (dialogInterface, i) -> {
-                            saveRequest(destine);
-                        })
-                        .setNegativeButton("Cancel", (dialogInterface, i) -> {
+                    AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this)
+                            .setTitle("Confirm the address")
+                            .setMessage(message)
+                            .setPositiveButton("Confirm", (dialogInterface, i) -> {
+                                saveRequest(destine);
+                            })
+                            .setNegativeButton("Cancel", (dialogInterface, i) -> {
 
-                        });
+                            });
 
-                AlertDialog dialog = alertDialogBuilder.create();
-                dialog.show();
+                    AlertDialog dialog = alertDialogBuilder.create();
+                    dialog.show();
+                }
+            } else {
+                Toast.makeText(this, "Fill the destine address", Toast.LENGTH_SHORT).show();
             }
         } else {
-            Toast.makeText(this, "Fill the destine address", Toast.LENGTH_SHORT).show();
+            calledUber = false;
+
         }
     }
 
@@ -140,6 +204,10 @@ public class PassengerActivity extends AppCompatActivity implements OnMapReadyCa
         request.setStatus(Request.STATUS_WAITING);
 
         request.save();
+
+        llLocations.setVisibility(View.GONE);
+        btCallUber.setText("Cancel");
+        calledUber = true;
     }
 
     private Address getAddress(String destineAddress) {
@@ -264,6 +332,7 @@ public class PassengerActivity extends AppCompatActivity implements OnMapReadyCa
     private void initializeComponents() {
         etDestineLocation = findViewById(R.id.etDestineLocation);
         btCallUber = findViewById(R.id.buttonCallUber);
+        llLocations = findViewById(R.id.llLocations);
 
         firebaseAuth = FirebaseConfig.getAuthFirebase();
 
@@ -273,5 +342,14 @@ public class PassengerActivity extends AppCompatActivity implements OnMapReadyCa
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+
+        startLocationUpdates();
+
+        verifyRequestStatus();
     }
 }
