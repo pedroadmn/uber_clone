@@ -26,6 +26,8 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
@@ -54,15 +56,21 @@ public class RaceActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private GoogleMap mMap;
 
-    private LatLng myLocal;
+    private LatLng driverLocation;
+    private LatLng passengerLocation;
 
     private User driver;
+    private User passenger;
+
     private String requestId;
 
     private Request request;
 
     private FirebaseAuth firebaseAuth;
     private DatabaseReference firebaseRef;
+
+    private Marker driverMarker;
+    private Marker passengerMarker;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -95,6 +103,11 @@ public class RaceActivity extends AppCompatActivity implements OnMapReadyCallbac
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 request = snapshot.getValue(Request.class);
 
+                passenger = request.getPassenger();
+
+                passengerLocation = new LatLng(Double.parseDouble(passenger.getLatitude()),
+                        Double.parseDouble(passenger.getLongitude()));
+
                 switch (request.getStatus()) {
                     case Request.STATUS_WAITING:
                         waitingRequest();
@@ -114,10 +127,56 @@ public class RaceActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private void onWayRequest() {
         btAcceptRace.setText("Going to passenger location");
+        addDriverMarker(driverLocation, driver.getName());
+        addPassengerMarker(passengerLocation, passenger.getName());
+
+        centerMarkers(driverMarker, passengerMarker);
+    }
+
+    private void centerMarkers(Marker driverMarker, Marker passengerMarker) {
+        LatLngBounds.Builder builder = new LatLngBounds.Builder();
+
+        builder.include(driverMarker.getPosition());
+        builder.include(passengerMarker.getPosition());
+
+        LatLngBounds bounds = builder.build();
+
+        int width = getResources().getDisplayMetrics().widthPixels;
+        int height = getResources().getDisplayMetrics().heightPixels;
+        int internSpace = (int)(width * 0.2);
+
+        mMap.moveCamera(
+                CameraUpdateFactory.newLatLngBounds(bounds, width, height, internSpace));
     }
 
     private void waitingRequest() {
         btAcceptRace.setText("Accept race");
+    }
+
+    private void addDriverMarker(LatLng location, String title) {
+        if (driverMarker != null) {
+            driverMarker.remove();
+        }
+
+        driverMarker = mMap.addMarker(
+                new MarkerOptions()
+                        .position(location)
+                        .title(title)
+                        .icon(BitmapDescriptorFactory.fromResource(R.drawable.carro))
+        );
+    }
+
+    private void addPassengerMarker(LatLng location, String title) {
+        if (passengerMarker != null) {
+            passengerMarker.remove();
+        }
+
+        passengerMarker = mMap.addMarker(
+                new MarkerOptions()
+                        .position(location)
+                        .title(title)
+                        .icon(BitmapDescriptorFactory.fromResource(R.drawable.usuario))
+        );
     }
 
     private void requestPermissionIfRequired() {
@@ -154,18 +213,18 @@ public class RaceActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                 double latitude = location.getLatitude();
                 double longitude = location.getLongitude();
-                myLocal = new LatLng(latitude, longitude);
+                driverLocation = new LatLng(latitude, longitude);
 
                 mMap.clear();
                 mMap.addMarker(
                         new MarkerOptions()
-                                .position(myLocal)
+                                .position(driverLocation)
                                 .title("My Local")
                                 .icon(BitmapDescriptorFactory.fromResource(R.drawable.carro))
                 );
 
                 mMap.moveCamera(
-                        CameraUpdateFactory.newLatLngZoom(myLocal, 18)
+                        CameraUpdateFactory.newLatLngZoom(driverLocation, 18)
                 );
             }
 
