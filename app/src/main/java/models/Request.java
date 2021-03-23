@@ -83,4 +83,15 @@ public class Request implements Serializable {
 
         request.updateChildren(object);
     }
+
+    public void     updateStatus() {
+        DatabaseReference requestRef = FirebaseConfig.getFirebase().child("requests");
+
+        DatabaseReference request = requestRef.child(getId());
+
+        Map object = new HashMap<>();
+        object.put("status", getStatus());
+
+        request.updateChildren(object);
+    }
 }

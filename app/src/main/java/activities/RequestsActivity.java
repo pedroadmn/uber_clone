@@ -156,6 +156,7 @@ public class RequestsActivity extends AppCompatActivity {
                     requestAdapter.notifyDataSetChanged();
                 }
 
+                verifyRequestStatus();
             }
 
             @Override
@@ -293,8 +294,6 @@ public class RequestsActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-
-        verifyRequestStatus();
 
         startLocationUpdates();
 

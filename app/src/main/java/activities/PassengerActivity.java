@@ -194,6 +194,7 @@ public class PassengerActivity extends AppCompatActivity implements OnMapReadyCa
                 Toast.makeText(this, "Fill the destine address", Toast.LENGTH_SHORT).show();
             }
         } else {
+
             calledUber = false;
 
         }

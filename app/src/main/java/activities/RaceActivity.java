@@ -3,6 +3,7 @@ package activities;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
@@ -14,6 +15,10 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
+import com.firebase.geofire.GeoFire;
+import com.firebase.geofire.GeoLocation;
+import com.firebase.geofire.GeoQuery;
+import com.firebase.geofire.GeoQueryEventListener;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationAvailability;
 import com.google.android.gms.location.LocationCallback;
@@ -27,6 +32,8 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.google.android.gms.maps.model.Circle;
+import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
@@ -96,7 +103,11 @@ public class RaceActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         if (bundle != null && bundle.containsKey("requestId") && bundle.containsKey("driver")) {
             driver = (User) bundle.getSerializable("driver");
-            driverLocation = new LatLng(Double.parseDouble(driver.getLatitude()), Double.parseDouble(driver.getLongitude()));
+
+            if (driver.getLatitude() != null && driver.getLongitude() != null) {
+                driverLocation = new LatLng(Double.parseDouble(driver.getLatitude()), Double.parseDouble(driver.getLongitude()));
+            }
+
             requestId = bundle.getString("requestId");
             activeRequest = bundle.getBoolean("activeRequest");
 
@@ -148,6 +159,59 @@ public class RaceActivity extends AppCompatActivity implements OnMapReadyCallbac
         addPassengerMarker(passengerLocation, passenger.getName());
 
         centerMarkers(driverMarker, passengerMarker);
+
+        initRaceMonitoring(passenger, driver);
+
+    }
+
+    private void initRaceMonitoring(User passenger, User driver) {
+        DatabaseReference userLocal = FirebaseConfig.getFirebase().child("local_user");
+        GeoFire geoFire = new GeoFire(userLocal);
+
+        Circle circle = mMap.addCircle(
+                new CircleOptions()
+                        .center(passengerLocation)
+                        .radius(50)
+                        .fillColor(Color.argb(90, 255, 153, 0))
+                        .strokeColor(Color.argb(190, 255, 152, 0)));
+
+        GeoQuery geoQuery = geoFire.queryAtLocation(
+                new GeoLocation(passengerLocation.latitude, passengerLocation.longitude),
+                0.05
+        );
+
+        geoQuery.addGeoQueryEventListener(new GeoQueryEventListener() {
+            @Override
+            public void onKeyEntered(String key, GeoLocation location) {
+                if (key.equals(driver.getUserId())) {
+                    request.setStatus(Request.STATUS_TRIP);
+                    request.updateStatus();
+
+                    geoQuery.removeAllListeners();
+                    circle.remove();
+                }
+            }
+
+            @Override
+            public void onKeyExited(String key) {
+
+            }
+
+            @Override
+            public void onKeyMoved(String key, GeoLocation location) {
+
+            }
+
+            @Override
+            public void onGeoQueryReady() {
+
+            }
+
+            @Override
+            public void onGeoQueryError(DatabaseError error) {
+
+            }
+        });
     }
 
     private void centerMarkers(Marker driverMarker, Marker passengerMarker) {
