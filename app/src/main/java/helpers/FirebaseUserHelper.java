@@ -6,6 +6,8 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
+import com.firebase.geofire.GeoFire;
+import com.firebase.geofire.GeoLocation;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
@@ -96,5 +98,20 @@ public class FirebaseUserHelper {
 
     public static String getLoggedUserId() {
         return getCurrentUser().getUid();
+    }
+
+    public static void updateLocationData(double latitude, double longitude) {
+        DatabaseReference userLocal = FirebaseConfig.getFirebase().child("local_user");
+
+        GeoFire geoFire = new GeoFire(userLocal);
+
+        User loggedUser = FirebaseUserHelper.getLoggedUserInfo();
+
+        geoFire.setLocation(loggedUser.getUserId(), new GeoLocation(latitude, longitude),
+                (key, error) -> {
+                    if (error != null) {
+                        Log.d("Error", "Error on save location");
+                    }
+                });
     }
 }

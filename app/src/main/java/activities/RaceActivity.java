@@ -38,6 +38,7 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.ValueEventListener;
 
 import helpers.FirebaseConfig;
+import helpers.FirebaseUserHelper;
 import models.Request;
 import models.User;
 import pedroadmn.uberclone.com.R;
@@ -167,6 +168,11 @@ public class RaceActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private void waitingRequest() {
         btAcceptRace.setText("Accept race");
+
+        addDriverMarker(driverLocation, driver.getName());
+
+        mMap.moveCamera(
+                CameraUpdateFactory.newLatLngZoom(driverLocation, 20));
     }
 
     private void addDriverMarker(LatLng location, String title) {
@@ -229,6 +235,9 @@ public class RaceActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                 double latitude = location.getLatitude();
                 double longitude = location.getLongitude();
+
+                FirebaseUserHelper.updateLocationData(latitude, longitude);
+
                 driverLocation = new LatLng(latitude, longitude);
 
                 updateUIBasedOnRequestStatus(requestStatus);

@@ -145,6 +145,8 @@ public class RequestsActivity extends AppCompatActivity {
                 String latitude = String.valueOf(location.getLatitude());
                 String longitude = String.valueOf(location.getLongitude());
 
+                FirebaseUserHelper.updateLocationData(location.getLatitude(), location.getLongitude());
+
                 if (!latitude.isEmpty() && !longitude.isEmpty()) {
                     driver.setLatitude(latitude);
                     driver.setLongitude(longitude);

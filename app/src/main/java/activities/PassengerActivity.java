@@ -1,7 +1,6 @@
 package activities;
 
 import android.Manifest;
-import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.location.Address;
 import android.location.Geocoder;
@@ -9,7 +8,6 @@ import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Looper;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -61,6 +59,15 @@ import pedroadmn.uberclone.com.R;
 
 public class PassengerActivity extends AppCompatActivity implements OnMapReadyCallback {
 
+    /**
+     * Lat/Lon passenger: -23.562791, -46.654668
+     * Lat/Lon destine: -23.556407, -46.662365
+     * Lat/Lon driver:
+     * -- Initial: -23.563196, -46.650607
+     * -- Intermediate: -23.564801, -46.652196
+     * -- Final: -23.563136, -46.654247
+     */
+
     private EditText etDestineLocation;
     private Button btCallUber;
     private LinearLayout llLocations;
@@ -87,6 +94,8 @@ public class PassengerActivity extends AppCompatActivity implements OnMapReadyCa
     private DatabaseReference firebaseRef;
 
     private Request request;
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -260,6 +269,8 @@ public class PassengerActivity extends AppCompatActivity implements OnMapReadyCa
                 double latitude = location.getLatitude();
                 double longitude = location.getLongitude();
                 myLocal = new LatLng(latitude, longitude);
+
+                FirebaseUserHelper.updateLocationData(latitude, longitude);
 
                 mMap.clear();
                 mMap.addMarker(
