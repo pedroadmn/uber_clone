@@ -232,10 +232,12 @@ public class RequestsActivity extends AppCompatActivity {
         requestSearch.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
+                requestList.clear();
                 if (snapshot.getChildrenCount() > 0) {
                     tvWaitingRequests.setVisibility(View.GONE);
                     rvRequests.setVisibility(View.VISIBLE);
 
+                    requestList.clear();
                     for (DataSnapshot ds : snapshot.getChildren()) {
                         Request request = ds.getValue(Request.class);
                         requestList.add(request);

@@ -3,6 +3,8 @@ package models;
 import com.google.firebase.database.DatabaseReference;
 
 import java.io.Serializable;
+import java.util.HashMap;
+import java.util.Map;
 
 import helpers.FirebaseConfig;
 
@@ -68,5 +70,17 @@ public class Request implements Serializable {
         setId(requestId);
 
         requestRef.child(getId()).setValue(this);
+    }
+
+    public void update() {
+        DatabaseReference requestRef = FirebaseConfig.getFirebase().child("requests");
+
+        DatabaseReference request = requestRef.child(getId());
+
+        Map object = new HashMap<>();
+        object.put("driver", getDriver());
+        object.put("status", getStatus());
+
+        request.updateChildren(object);
     }
 }

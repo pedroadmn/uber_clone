@@ -5,6 +5,12 @@ import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Looper;
+import android.widget.Button;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationAvailability;
@@ -21,18 +27,15 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import com.google.android.material.snackbar.Snackbar;
-
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
-import androidx.core.app.ActivityCompat;
-
-import android.os.Looper;
-import android.view.View;
-import android.widget.Button;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.ValueEventListener;
 
 import helpers.FirebaseConfig;
+import models.Request;
+import models.User;
 import pedroadmn.uberclone.com.R;
 
 public class RaceActivity extends AppCompatActivity implements OnMapReadyCallback {
@@ -53,6 +56,14 @@ public class RaceActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private LatLng myLocal;
 
+    private User driver;
+    private String requestId;
+
+    private Request request;
+
+    private FirebaseAuth firebaseAuth;
+    private DatabaseReference firebaseRef;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -65,6 +76,48 @@ public class RaceActivity extends AppCompatActivity implements OnMapReadyCallbac
         btAcceptRace.setOnClickListener(v -> acceptRace());
 
         requestPermissionIfRequired();
+
+        Bundle bundle = getIntent().getExtras();
+
+        if (bundle != null && bundle.containsKey("requestId") && bundle.containsKey("driver")) {
+            driver = (User) bundle.getSerializable("driver");
+            requestId = bundle.getString("requestId");
+
+            verifyStatusRequest();
+        }
+    }
+
+    private void verifyStatusRequest() {
+        DatabaseReference requests = firebaseRef.child("requests").child(requestId);
+
+        requests.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                request = snapshot.getValue(Request.class);
+
+                switch (request.getStatus()) {
+                    case Request.STATUS_WAITING:
+                        waitingRequest();
+                        break;
+                    case Request.STATUS_ON_WAY:
+                        onWayRequest();
+                        break;
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
+    }
+
+    private void onWayRequest() {
+        btAcceptRace.setText("Going to passenger location");
+    }
+
+    private void waitingRequest() {
+        btAcceptRace.setText("Accept race");
     }
 
     private void requestPermissionIfRequired() {
@@ -147,6 +200,9 @@ public class RaceActivity extends AppCompatActivity implements OnMapReadyCallbac
     private void initializeComponent() {
         btAcceptRace = findViewById(R.id.btAcceptRace);
 
+        firebaseAuth = FirebaseConfig.getAuthFirebase();
+        firebaseRef = FirebaseConfig.getFirebase();
+
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         mSettingsClient = LocationServices.getSettingsClient(this);
 
@@ -156,7 +212,12 @@ public class RaceActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private void acceptRace() {
+        request = new Request();
+        request.setId(requestId);
+        request.setDriver(driver);
+        request.setStatus(Request.STATUS_ON_WAY);
 
+        request.update();
     }
 
     @Override
