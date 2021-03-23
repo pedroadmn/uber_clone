@@ -100,6 +100,30 @@ public class RequestsActivity extends AppCompatActivity {
         }
     }
 
+    private void verifyRequestStatus() {
+        User loggedUser = FirebaseUserHelper.getLoggedUserInfo();
+        DatabaseReference requests = firebaseRef.child("requests");
+        Query requestSearch = requests.orderByChild("driver/userId").equalTo(loggedUser.getUserId());
+
+        requestSearch.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                for (DataSnapshot ds : snapshot.getChildren()) {
+                    Request request = ds.getValue(Request.class);
+
+                    if (request.getStatus().equals(Request.STATUS_ON_WAY) || request.getStatus().equals(Request.STATUS_TRIP)) {
+                        openRaceScreen(request.getId(), driver, true);
+                    }
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
+    }
+
     private void requestLocation() {
         mLocationRequest = LocationRequest.create()
                 .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
@@ -202,10 +226,7 @@ public class RequestsActivity extends AppCompatActivity {
                     @Override
                     public void onItemClick(View view, int position) {
                         Request request = requestList.get(position);
-                        Intent intent = new Intent(RequestsActivity.this, RaceActivity.class);
-                        intent.putExtra("requestId", request.getId());
-                        intent.putExtra("driver", driver);
-                        startActivity(intent);
+                        openRaceScreen(request.getId(), driver, false);
                     }
 
                     @Override
@@ -222,6 +243,14 @@ public class RequestsActivity extends AppCompatActivity {
 
         firebaseAuth = FirebaseConfig.getAuthFirebase();
         firebaseRef = FirebaseConfig.getFirebase();
+    }
+
+    private void openRaceScreen(String requestId, User driver, boolean activeRequest) {
+        Intent intent = new Intent(RequestsActivity.this, RaceActivity.class);
+        intent.putExtra("requestId", requestId);
+        intent.putExtra("driver", driver);
+        intent.putExtra("activeRequest", activeRequest);
+        startActivity(intent);
     }
 
     private void getRequests() {
@@ -262,6 +291,8 @@ public class RequestsActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
+
+        verifyRequestStatus();
 
         startLocationUpdates();
 

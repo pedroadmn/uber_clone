@@ -1,12 +1,14 @@
 package activities;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Looper;
 import android.widget.Button;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -72,6 +74,10 @@ public class RaceActivity extends AppCompatActivity implements OnMapReadyCallbac
     private Marker driverMarker;
     private Marker passengerMarker;
 
+    private String requestStatus;
+
+    private boolean activeRequest;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -89,7 +95,9 @@ public class RaceActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         if (bundle != null && bundle.containsKey("requestId") && bundle.containsKey("driver")) {
             driver = (User) bundle.getSerializable("driver");
+            driverLocation = new LatLng(Double.parseDouble(driver.getLatitude()), Double.parseDouble(driver.getLongitude()));
             requestId = bundle.getString("requestId");
+            activeRequest = bundle.getBoolean("activeRequest");
 
             verifyStatusRequest();
         }
@@ -103,18 +111,15 @@ public class RaceActivity extends AppCompatActivity implements OnMapReadyCallbac
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 request = snapshot.getValue(Request.class);
 
-                passenger = request.getPassenger();
+                if (request != null) {
+                    passenger = request.getPassenger();
 
-                passengerLocation = new LatLng(Double.parseDouble(passenger.getLatitude()),
-                        Double.parseDouble(passenger.getLongitude()));
+                    passengerLocation = new LatLng(Double.parseDouble(passenger.getLatitude()),
+                            Double.parseDouble(passenger.getLongitude()));
 
-                switch (request.getStatus()) {
-                    case Request.STATUS_WAITING:
-                        waitingRequest();
-                        break;
-                    case Request.STATUS_ON_WAY:
-                        onWayRequest();
-                        break;
+                    requestStatus = request.getStatus();
+
+                    updateUIBasedOnRequestStatus(requestStatus);
                 }
             }
 
@@ -123,6 +128,17 @@ public class RaceActivity extends AppCompatActivity implements OnMapReadyCallbac
 
             }
         });
+    }
+
+    private void updateUIBasedOnRequestStatus(String status) {
+        switch (status) {
+            case Request.STATUS_WAITING:
+                waitingRequest();
+                break;
+            case Request.STATUS_ON_WAY:
+                onWayRequest();
+                break;
+        }
     }
 
     private void onWayRequest() {
@@ -215,17 +231,7 @@ public class RaceActivity extends AppCompatActivity implements OnMapReadyCallbac
                 double longitude = location.getLongitude();
                 driverLocation = new LatLng(latitude, longitude);
 
-                mMap.clear();
-                mMap.addMarker(
-                        new MarkerOptions()
-                                .position(driverLocation)
-                                .title("My Local")
-                                .icon(BitmapDescriptorFactory.fromResource(R.drawable.carro))
-                );
-
-                mMap.moveCamera(
-                        CameraUpdateFactory.newLatLngZoom(driverLocation, 18)
-                );
+                updateUIBasedOnRequestStatus(requestStatus);
             }
 
             @Override
@@ -277,10 +283,23 @@ public class RaceActivity extends AppCompatActivity implements OnMapReadyCallbac
         request.setStatus(Request.STATUS_ON_WAY);
 
         request.update();
+
+        activeRequest = true;
     }
 
     @Override
     public void onMapReady(com.google.android.gms.maps.GoogleMap googleMap) {
         mMap = googleMap;
+    }
+
+    @Override
+    public boolean onSupportNavigateUp() {
+        if (activeRequest) {
+            Toast.makeText(this, "It is necessary close the current request", Toast.LENGTH_SHORT).show();
+        } else {
+            Intent intent = new Intent(this, RequestsActivity.class);
+            startActivity(intent);
+        }
+        return false;
     }
 }
