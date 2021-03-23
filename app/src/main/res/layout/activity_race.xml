@@ -20,4 +20,17 @@
         android:text="Accept Race"
         android:theme="@style/commomButton"/>
 
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabRote"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="76dp"
+        android:backgroundTint="@android:color/holo_orange_dark"
+        android:src="@drawable/rota"
+        app:fabSize="normal"
+        android:layout_gravity="bottom|end"
+        android:visibility="gone"
+        tools:visibility="visible"/>
+
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

@@ -5,9 +5,11 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Location;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Looper;
+import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 
@@ -38,6 +40,7 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -53,6 +56,7 @@ import pedroadmn.uberclone.com.R;
 public class RaceActivity extends AppCompatActivity implements OnMapReadyCallback {
 
     private Button btAcceptRace;
+    private FloatingActionButton fabRote;
 
     private FusedLocationProviderClient mFusedLocationClient;
     private LocationRequest mLocationRequest;
@@ -155,6 +159,7 @@ public class RaceActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private void onWayRequest() {
         btAcceptRace.setText("Going to passenger location");
+        fabRote.setVisibility(View.VISIBLE);
         addDriverMarker(driverLocation, driver.getName());
         addPassengerMarker(passengerLocation, passenger.getName());
 
@@ -337,6 +342,34 @@ public class RaceActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private void initializeComponent() {
         btAcceptRace = findViewById(R.id.btAcceptRace);
+        fabRote = findViewById(R.id.fabRote);
+
+        fabRote.setOnClickListener(view -> {
+            String status = requestStatus;
+
+            if (status != null && !status.isEmpty()) {
+                String lat = "";
+                String lon = "";
+
+                switch (status) {
+                    case Request.STATUS_ON_WAY:
+                        lat = String.valueOf(passengerLocation.latitude);
+                        lon = String.valueOf(passengerLocation.longitude);
+                        break;
+                    case Request.STATUS_TRIP:
+                        lat = String.valueOf(request.getDestine().getLatitude());
+                        lon = String.valueOf(request.getDestine().getLongitude());
+                        break;
+                }
+
+                String latLong = lat + "," + lon;
+
+                Uri uri = Uri.parse("google.navigation:q=" + latLong +"&mode=d");
+                Intent mapIntent = new Intent(Intent.ACTION_VIEW, uri);
+                mapIntent.setPackage("com.google.android.apps.maps");
+                startActivity(mapIntent);
+            }
+        });
 
         firebaseAuth = FirebaseConfig.getAuthFirebase();
         firebaseRef = FirebaseConfig.getFirebase();
