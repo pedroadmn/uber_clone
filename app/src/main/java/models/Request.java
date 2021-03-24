@@ -84,7 +84,19 @@ public class Request implements Serializable {
         request.updateChildren(object);
     }
 
-    public void     updateStatus() {
+    public void updateDriverLocation() {
+        DatabaseReference requestRef = FirebaseConfig.getFirebase().child("requests");
+
+        DatabaseReference request = requestRef.child(getId()).child("driver");
+
+        Map object = new HashMap<>();
+        object.put("latitude", getDriver().getLatitude());
+        object.put("longitude", getDriver().getLongitude());
+
+        request.updateChildren(object);
+    }
+
+    public void updateStatus() {
         DatabaseReference requestRef = FirebaseConfig.getFirebase().child("requests");
 
         DatabaseReference request = requestRef.child(getId());

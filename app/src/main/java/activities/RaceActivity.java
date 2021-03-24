@@ -392,6 +392,11 @@ public class RaceActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                 FirebaseUserHelper.updateLocationData(latitude, longitude);
 
+                driver.setLatitude(String.valueOf(latitude));
+                driver.setLongitude(String.valueOf(longitude));
+                request.setDriver(driver);
+                request.updateDriverLocation();
+
                 driverLocation = new LatLng(latitude, longitude);
 
                 updateUIBasedOnRequestStatus(requestStatus);

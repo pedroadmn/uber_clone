@@ -36,6 +36,8 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
@@ -95,7 +97,17 @@ public class PassengerActivity extends AppCompatActivity implements OnMapReadyCa
 
     private Request request;
 
+    private User passenger;
+    private User driver;
 
+    private String requestStatus;
+    private Destine destine;
+    private LatLng passengerLocation;
+    private LatLng driverLocation;
+
+    private Marker driverMarker;
+    private Marker passengerMarker;
+    private Marker destineMarker;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -107,7 +119,7 @@ public class PassengerActivity extends AppCompatActivity implements OnMapReadyCa
         getSupportActionBar().setTitle("Start a new trip");
 
         btCallUber.setOnClickListener(v -> callUber());
-        
+
         requestPermissionIfRequired();
     }
 
@@ -122,7 +134,7 @@ public class PassengerActivity extends AppCompatActivity implements OnMapReadyCa
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 List<Request> requestList = new ArrayList<>();
 
-                for (DataSnapshot ds: snapshot.getChildren()) {
+                for (DataSnapshot ds : snapshot.getChildren()) {
                     requestList.add(ds.getValue(Request.class));
                 }
 
@@ -130,18 +142,21 @@ public class PassengerActivity extends AppCompatActivity implements OnMapReadyCa
                     Collections.reverse(requestList);
                     request = requestList.get(0);
 
+                    if (request != null) {
+                        passenger = request.getPassenger();
 
-                    switch (request.getStatus()) {
-                        case Request.STATUS_WAITING:
-                            llLocations.setVisibility(View.GONE);
-                            btCallUber.setText("Cancel");
-                            calledUber = true;
-                            break;
-                        case Request.STATUS_FINISHED:
-                            llLocations.setVisibility(View.VISIBLE);
-                            btCallUber.setText("Call Uber");
-                            calledUber = false;
-                            break;
+                        passengerLocation = new LatLng(Double.parseDouble(passenger.getLatitude()),
+                                Double.parseDouble(passenger.getLongitude()));
+
+                        requestStatus = request.getStatus();
+                        destine = request.getDestine();
+
+                        if (request.getDriver() != null) {
+                            driver = request.getDriver();
+                            driverLocation = new LatLng(Double.parseDouble(driver.getLatitude()), Double.parseDouble(driver.getLongitude()));
+                        }
+
+                        updateUIBasedOnRequestStatus(requestStatus);
                     }
                 }
             }
@@ -151,6 +166,116 @@ public class PassengerActivity extends AppCompatActivity implements OnMapReadyCa
 
             }
         });
+    }
+
+    private void updateUIBasedOnRequestStatus(String status) {
+        switch (status) {
+            case Request.STATUS_WAITING:
+                waitingRequest();
+                break;
+            case Request.STATUS_ON_WAY:
+                onWayRequest();
+                break;
+            case Request.STATUS_TRIP:
+                tripRequest();
+                break;
+            case Request.STATUS_FINISHED:
+                finishedRequest();
+                break;
+        }
+
+    }
+
+    private void finishedRequest() {
+    }
+
+    private void tripRequest() {
+    }
+
+    private void onWayRequest() {
+        llLocations.setVisibility(View.GONE);
+        btCallUber.setText("Driver on way");
+        calledUber = true;
+
+        addPassengerMarker(passengerLocation, passenger.getName());
+        addDriverMarker(driverLocation, driver.getName());
+
+        centerMarkers(passengerMarker, driverMarker);
+    }
+
+    private void waitingRequest() {
+        llLocations.setVisibility(View.GONE);
+        btCallUber.setText("Cancel");
+        calledUber = true;
+
+        addPassengerMarker(passengerLocation, passenger.getName());
+
+        centerMarker(passengerLocation);
+    }
+
+    private void centerMarkers(Marker marker1, Marker marker2) {
+        LatLngBounds.Builder builder = new LatLngBounds.Builder();
+
+        builder.include(marker1.getPosition());
+        builder.include(marker2.getPosition());
+
+        LatLngBounds bounds = builder.build();
+
+        int width = getResources().getDisplayMetrics().widthPixels;
+        int height = getResources().getDisplayMetrics().heightPixels;
+        int internSpace = (int)(width * 0.2);
+
+        mMap.moveCamera(
+                CameraUpdateFactory.newLatLngBounds(bounds, width, height, internSpace));
+    }
+
+    private void centerMarker(LatLng location) {
+        mMap.moveCamera(
+                CameraUpdateFactory.newLatLngZoom(location, 20)
+        );
+    }
+
+    private void addDriverMarker(LatLng location, String title) {
+        if (driverMarker != null) {
+            driverMarker.remove();
+        }
+
+        driverMarker = mMap.addMarker(
+                new MarkerOptions()
+                        .position(location)
+                        .title(title)
+                        .icon(BitmapDescriptorFactory.fromResource(R.drawable.carro))
+        );
+    }
+
+    private void addDestineMarker(LatLng location, String title) {
+        if (passengerMarker != null) {
+            passengerMarker.remove();
+        }
+
+        if (destineMarker != null) {
+            destineMarker.remove();
+        }
+
+        destineMarker = mMap.addMarker(
+                new MarkerOptions()
+                        .position(location)
+                        .title(title)
+                        .icon(BitmapDescriptorFactory.fromResource(R.drawable.destino))
+        );
+    }
+
+    private void addPassengerMarker(LatLng location, String title) {
+        if (passengerMarker != null) {
+            passengerMarker.remove();
+        }
+
+        passengerMarker = mMap.addMarker(
+                new MarkerOptions()
+                        .position(location)
+                        .title(title)
+                        .icon(BitmapDescriptorFactory.fromResource(R.drawable.usuario))
+        );
     }
 
     private void callUber() {
