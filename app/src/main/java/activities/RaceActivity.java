@@ -162,7 +162,39 @@ public class RaceActivity extends AppCompatActivity implements OnMapReadyCallbac
             case Request.STATUS_TRIP:
                 tripRequest();
                 break;
+            case Request.STATUS_FINISHED:
+                finishedRequest();
+                break;
         }
+    }
+
+    private void finishedRequest() {
+        fabRote.setVisibility(View.GONE);
+
+        if (driverMarker != null) {
+            driverMarker.remove();
+        }
+
+        if (destineMarker != null) {
+            destineMarker.remove();
+        }
+
+        LatLng destineLocation = new LatLng(
+                Double.parseDouble(destine.getLatitude()),
+                Double.parseDouble(destine.getLongitude())
+        );
+
+        addDestineMarker(destineLocation, "Destine");
+
+        centerMarker(destineLocation);
+
+        btAcceptRace.setText("Finalized Trip: R$ 20");
+    }
+
+    private void centerMarker(LatLng location) {
+        mMap.moveCamera(
+                CameraUpdateFactory.newLatLngZoom(location, 20)
+        );
     }
 
     private void tripRequest() {
@@ -176,6 +208,8 @@ public class RaceActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         centerMarkers(driverMarker, destineMarker);
 
+        initMonitoring(driver, destineLocation, Request.STATUS_FINISHED);
+
     }
 
     private void onWayRequest() {
@@ -186,31 +220,30 @@ public class RaceActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         centerMarkers(driverMarker, passengerMarker);
 
-        initRaceMonitoring(passenger, driver);
-
+        initMonitoring(driver, passengerLocation, Request.STATUS_TRIP);
     }
 
-    private void initRaceMonitoring(User passenger, User driver) {
+    private void initMonitoring(User userOrigin, LatLng destine, String status) {
         DatabaseReference userLocal = FirebaseConfig.getFirebase().child("local_user");
         GeoFire geoFire = new GeoFire(userLocal);
 
         Circle circle = mMap.addCircle(
                 new CircleOptions()
-                        .center(passengerLocation)
-                        .radius(50)
+                        .center(destine)
+                        .radius(100)
                         .fillColor(Color.argb(90, 255, 153, 0))
                         .strokeColor(Color.argb(190, 255, 152, 0)));
 
         GeoQuery geoQuery = geoFire.queryAtLocation(
-                new GeoLocation(passengerLocation.latitude, passengerLocation.longitude),
+                new GeoLocation(destine.latitude, destine.longitude),
                 0.05
         );
 
         geoQuery.addGeoQueryEventListener(new GeoQueryEventListener() {
             @Override
             public void onKeyEntered(String key, GeoLocation location) {
-                if (key.equals(driver.getUserId())) {
-                    request.setStatus(Request.STATUS_TRIP);
+                if (key.equals(userOrigin.getUserId())) {
+                    request.setStatus(status);
                     request.updateStatus();
 
                     geoQuery.removeAllListeners();
@@ -261,8 +294,7 @@ public class RaceActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         addDriverMarker(driverLocation, driver.getName());
 
-        mMap.moveCamera(
-                CameraUpdateFactory.newLatLngZoom(driverLocation, 20));
+        centerMarker(driverLocation);
     }
 
     private void addDriverMarker(LatLng location, String title) {

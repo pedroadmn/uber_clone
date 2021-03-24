@@ -111,7 +111,8 @@ public class RequestsActivity extends AppCompatActivity {
                 for (DataSnapshot ds : snapshot.getChildren()) {
                     Request request = ds.getValue(Request.class);
 
-                    if (request.getStatus().equals(Request.STATUS_ON_WAY) || request.getStatus().equals(Request.STATUS_TRIP)) {
+                    if (request.getStatus().equals(Request.STATUS_ON_WAY) || request.getStatus().equals(Request.STATUS_TRIP)
+                                || request.getStatus().equals(Request.STATUS_FINISHED)) {
                         driver = request.getDriver();
                         openRaceScreen(request.getId(), driver, true);
                     }
