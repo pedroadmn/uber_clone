@@ -9,8 +9,11 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.gms.maps.model.LatLng;
+
 import java.util.List;
 
+import helpers.Local;
 import models.Request;
 import models.User;
 import pedroadmn.uberclone.com.R;
@@ -37,9 +40,25 @@ public class RequestAdapter extends RecyclerView.Adapter<RequestAdapter.MyViewHo
     @Override
     public void onBindViewHolder(@NonNull MyViewHolder holder, int i) {
         Request request = requests.get(i);
+        User passenger = request.getPassenger();
 
         holder.name.setText(request.getPassenger().getName());
-        holder.distance.setText("0 km approximately");
+
+        if (driver != null) {
+            LatLng passengerLocation = new LatLng(
+                    Double.parseDouble(passenger.getLatitude()),
+                    Double.parseDouble(passenger.getLongitude()));
+
+            LatLng driverLocation = new LatLng(
+                    Double.parseDouble(passenger.getLatitude()),
+                    Double.parseDouble(passenger.getLongitude())
+            );
+
+            float distance = Local.calculateDistance(passengerLocation, driverLocation);
+            String formattedDistance = Local.formattedDistance(distance);
+            holder.distance.setText(formattedDistance + " approximately");
+        }
+
 
 //        holder.companyName.setText(company.getName());
 //        holder.category.setText(company.getCategory() + " - ");
