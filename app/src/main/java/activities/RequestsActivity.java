@@ -112,6 +112,7 @@ public class RequestsActivity extends AppCompatActivity {
                     Request request = ds.getValue(Request.class);
 
                     if (request.getStatus().equals(Request.STATUS_ON_WAY) || request.getStatus().equals(Request.STATUS_TRIP)) {
+                        driver = request.getDriver();
                         openRaceScreen(request.getId(), driver, true);
                     }
                 }
@@ -150,6 +151,8 @@ public class RequestsActivity extends AppCompatActivity {
                 if (!latitude.isEmpty() && !longitude.isEmpty()) {
                     driver.setLatitude(latitude);
                     driver.setLongitude(longitude);
+
+                    addRecyclerViewEventClick();
 
                     mFusedLocationClient.removeLocationUpdates(mLocationCallback);
 
@@ -222,6 +225,11 @@ public class RequestsActivity extends AppCompatActivity {
         rvRequests.setHasFixedSize(true);
         rvRequests.setAdapter(requestAdapter);
 
+        firebaseAuth = FirebaseConfig.getAuthFirebase();
+        firebaseRef = FirebaseConfig.getFirebase();
+    }
+
+    private void addRecyclerViewEventClick() {
         rvRequests.addOnItemTouchListener(new RecyclerItemClickListener(
                 getApplicationContext(),
                 rvRequests,
@@ -243,9 +251,6 @@ public class RequestsActivity extends AppCompatActivity {
                     }
                 }
         ));
-
-        firebaseAuth = FirebaseConfig.getAuthFirebase();
-        firebaseRef = FirebaseConfig.getFirebase();
     }
 
     private void openRaceScreen(String requestId, User driver, boolean activeRequest) {

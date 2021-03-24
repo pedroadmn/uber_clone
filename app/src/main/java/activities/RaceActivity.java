@@ -49,6 +49,7 @@ import com.google.firebase.database.ValueEventListener;
 
 import helpers.FirebaseConfig;
 import helpers.FirebaseUserHelper;
+import models.Destine;
 import models.Request;
 import models.User;
 import pedroadmn.uberclone.com.R;
@@ -85,10 +86,13 @@ public class RaceActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private Marker driverMarker;
     private Marker passengerMarker;
+    private Marker destineMarker;
 
     private String requestStatus;
 
     private boolean activeRequest;
+
+    private Destine destine;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -134,6 +138,7 @@ public class RaceActivity extends AppCompatActivity implements OnMapReadyCallbac
                             Double.parseDouble(passenger.getLongitude()));
 
                     requestStatus = request.getStatus();
+                    destine = request.getDestine();
 
                     updateUIBasedOnRequestStatus(requestStatus);
                 }
@@ -154,7 +159,23 @@ public class RaceActivity extends AppCompatActivity implements OnMapReadyCallbac
             case Request.STATUS_ON_WAY:
                 onWayRequest();
                 break;
+            case Request.STATUS_TRIP:
+                tripRequest();
+                break;
         }
+    }
+
+    private void tripRequest() {
+        fabRote.setVisibility(View.VISIBLE);
+        btAcceptRace.setText("On way to destine");
+
+        addDriverMarker(driverLocation, driver.getName());
+
+        LatLng destineLocation = new LatLng(Double.parseDouble(destine.getLatitude()), Double.parseDouble(destine.getLongitude()));
+        addDestineMarker(destineLocation, "Destine");
+
+        centerMarkers(driverMarker, destineMarker);
+
     }
 
     private void onWayRequest() {
@@ -219,11 +240,11 @@ public class RaceActivity extends AppCompatActivity implements OnMapReadyCallbac
         });
     }
 
-    private void centerMarkers(Marker driverMarker, Marker passengerMarker) {
+    private void centerMarkers(Marker marker1, Marker marker2) {
         LatLngBounds.Builder builder = new LatLngBounds.Builder();
 
-        builder.include(driverMarker.getPosition());
-        builder.include(passengerMarker.getPosition());
+        builder.include(marker1.getPosition());
+        builder.include(marker2.getPosition());
 
         LatLngBounds bounds = builder.build();
 
@@ -254,6 +275,23 @@ public class RaceActivity extends AppCompatActivity implements OnMapReadyCallbac
                         .position(location)
                         .title(title)
                         .icon(BitmapDescriptorFactory.fromResource(R.drawable.carro))
+        );
+    }
+
+    private void addDestineMarker(LatLng location, String title) {
+        if (passengerMarker != null) {
+            passengerMarker.remove();
+        }
+
+        if (destineMarker != null) {
+            destineMarker.remove();
+        }
+
+        destineMarker = mMap.addMarker(
+                new MarkerOptions()
+                        .position(location)
+                        .title(title)
+                        .icon(BitmapDescriptorFactory.fromResource(R.drawable.destino))
         );
     }
 
@@ -357,8 +395,8 @@ public class RaceActivity extends AppCompatActivity implements OnMapReadyCallbac
                         lon = String.valueOf(passengerLocation.longitude);
                         break;
                     case Request.STATUS_TRIP:
-                        lat = String.valueOf(request.getDestine().getLatitude());
-                        lon = String.valueOf(request.getDestine().getLongitude());
+                        lat = destine.getLatitude();
+                        lon = destine.getLongitude();
                         break;
                 }
 
