@@ -47,8 +47,11 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.ValueEventListener;
 
+import java.text.DecimalFormat;
+
 import helpers.FirebaseConfig;
 import helpers.FirebaseUserHelper;
+import helpers.Local;
 import models.Destine;
 import models.Request;
 import models.User;
@@ -171,6 +174,8 @@ public class RaceActivity extends AppCompatActivity implements OnMapReadyCallbac
     private void finishedRequest() {
         fabRote.setVisibility(View.GONE);
 
+        activeRequest = false;
+
         if (driverMarker != null) {
             driverMarker.remove();
         }
@@ -188,7 +193,17 @@ public class RaceActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         centerMarker(destineLocation);
 
-        btAcceptRace.setText("Finalized Trip: R$ 20");
+        float distance = Local.calculateDistance(passengerLocation, destineLocation);
+        float price = distance * 3;
+
+        if (price < 5) {
+            price = 6.60f;
+        }
+        DecimalFormat decimalFormat = new DecimalFormat("0.00");
+
+        String result = decimalFormat.format(price);
+
+        btAcceptRace.setText("Finalized Trip: R$ " + result);
     }
 
     private void centerMarker(LatLng location) {
