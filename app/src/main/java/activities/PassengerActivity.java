@@ -1,6 +1,7 @@
 package activities;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Address;
 import android.location.Geocoder;
@@ -47,6 +48,7 @@ import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
 
 import java.io.IOException;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -54,6 +56,7 @@ import java.util.Locale;
 
 import helpers.FirebaseConfig;
 import helpers.FirebaseUserHelper;
+import helpers.Local;
 import models.Destine;
 import models.Request;
 import models.User;
@@ -91,7 +94,7 @@ public class PassengerActivity extends AppCompatActivity implements OnMapReadyCa
 
     public static final int WIFI_PERMISSION_RESULT = 888;
 
-    private boolean calledUber = false;
+    private boolean cancelUber = false;
 
     private DatabaseReference firebaseRef;
 
@@ -143,20 +146,23 @@ public class PassengerActivity extends AppCompatActivity implements OnMapReadyCa
                     request = requestList.get(0);
 
                     if (request != null) {
-                        passenger = request.getPassenger();
+                        if (!request.getStatus().equals(Request.STATUS_CLOSED)) {
+                            passenger = request.getPassenger();
 
-                        passengerLocation = new LatLng(Double.parseDouble(passenger.getLatitude()),
-                                Double.parseDouble(passenger.getLongitude()));
+                            passengerLocation = new LatLng(Double.parseDouble(passenger.getLatitude()),
+                                    Double.parseDouble(passenger.getLongitude()));
 
-                        requestStatus = request.getStatus();
-                        destine = request.getDestine();
+                            requestStatus = request.getStatus();
+                            destine = request.getDestine();
 
-                        if (request.getDriver() != null) {
-                            driver = request.getDriver();
-                            driverLocation = new LatLng(Double.parseDouble(driver.getLatitude()), Double.parseDouble(driver.getLongitude()));
+                            if (request.getDriver() != null) {
+                                driver = request.getDriver();
+                                driverLocation = new LatLng(Double.parseDouble(driver.getLatitude()), Double.parseDouble(driver.getLongitude()));
+                            }
+
+                            updateUIBasedOnRequestStatus(requestStatus);
                         }
 
-                        updateUIBasedOnRequestStatus(requestStatus);
                     }
                 }
             }
@@ -169,33 +175,97 @@ public class PassengerActivity extends AppCompatActivity implements OnMapReadyCa
     }
 
     private void updateUIBasedOnRequestStatus(String status) {
-        switch (status) {
-            case Request.STATUS_WAITING:
-                waitingRequest();
-                break;
-            case Request.STATUS_ON_WAY:
-                onWayRequest();
-                break;
-            case Request.STATUS_TRIP:
-                tripRequest();
-                break;
-            case Request.STATUS_FINISHED:
-                finishedRequest();
-                break;
+        if (status != null && !status.isEmpty()) {
+            cancelUber = false;
+            switch (status) {
+                case Request.STATUS_WAITING:
+                    waitingRequest();
+                    break;
+                case Request.STATUS_ON_WAY:
+                    onWayRequest();
+                    break;
+                case Request.STATUS_TRIP:
+                    tripRequest();
+                    break;
+                case Request.STATUS_FINISHED:
+                    finishedRequest();
+                    break;
+                case Request.STATUS_CANCELED:
+                    canceledRequest();
+                    break;
+            }
+        } else {
+            addPassengerMarker(passengerLocation, "Your location");
         }
+    }
 
+    private void canceledRequest() {
+        llLocations.setVisibility(View.VISIBLE);
+        btCallUber.setText("Call Uber");
+        cancelUber = false;
     }
 
     private void finishedRequest() {
+        llLocations.setVisibility(View.GONE);
+
+        LatLng destineLocation = new LatLng(
+                Double.parseDouble(destine.getLatitude()),
+                Double.parseDouble(destine.getLongitude())
+        );
+
+        addDestineMarker(destineLocation, "Destine");
+        centerMarker(destineLocation);
+
+        float distance = Local.calculateDistance(passengerLocation, destineLocation);
+        float price = distance * 3;
+
+        if (price < 5) {
+            price = 6.60f;
+        }
+        DecimalFormat decimalFormat = new DecimalFormat("0.00");
+
+        String result = decimalFormat.format(price);
+
+        btCallUber.setText("Finalized Trip: R$ " + result);
+        btCallUber.setEnabled(false);
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Trip Price")
+                .setMessage("Finalized Trip: R$ " + result)
+                .setCancelable(false)
+                .setNegativeButton("Close Trip", (dialogInterface, i) -> {
+                    request.setStatus(Request.STATUS_CLOSED);
+                    request.updateStatus();
+
+                    finish();
+                    startActivity(new Intent(getIntent()));
+                });
+
+        AlertDialog dialog = builder.create();
+        dialog.show();
     }
 
     private void tripRequest() {
+        llLocations.setVisibility(View.GONE);
+        btCallUber.setText("On Destine way");
+        btCallUber.setEnabled(false);
+
+        addDriverMarker(driverLocation, driver.getName());
+
+        LatLng destineLocation = new LatLng(
+                Double.parseDouble(destine.getLatitude()),
+                Double.parseDouble(destine.getLongitude())
+        );
+
+        addDestineMarker(destineLocation, "Destine");
+
+        centerMarkers(driverMarker, destineMarker);
     }
 
     private void onWayRequest() {
         llLocations.setVisibility(View.GONE);
         btCallUber.setText("Driver on way");
-        calledUber = true;
+        btCallUber.setEnabled(false);
 
         addPassengerMarker(passengerLocation, passenger.getName());
         addDriverMarker(driverLocation, driver.getName());
@@ -206,7 +276,7 @@ public class PassengerActivity extends AppCompatActivity implements OnMapReadyCa
     private void waitingRequest() {
         llLocations.setVisibility(View.GONE);
         btCallUber.setText("Cancel");
-        calledUber = true;
+        cancelUber = true;
 
         addPassengerMarker(passengerLocation, passenger.getName());
 
@@ -223,7 +293,7 @@ public class PassengerActivity extends AppCompatActivity implements OnMapReadyCa
 
         int width = getResources().getDisplayMetrics().widthPixels;
         int height = getResources().getDisplayMetrics().heightPixels;
-        int internSpace = (int)(width * 0.2);
+        int internSpace = (int) (width * 0.2);
 
         mMap.moveCamera(
                 CameraUpdateFactory.newLatLngBounds(bounds, width, height, internSpace));
@@ -279,7 +349,10 @@ public class PassengerActivity extends AppCompatActivity implements OnMapReadyCa
     }
 
     private void callUber() {
-        if (!calledUber) {
+        if (cancelUber) {
+            request.setStatus(Request.STATUS_CANCELED);
+            request.updateStatus();
+        } else {
             String destineAddress = etDestineLocation.getText().toString();
 
             if (destineAddress != null && !destineAddress.equals("")) {
@@ -318,10 +391,6 @@ public class PassengerActivity extends AppCompatActivity implements OnMapReadyCa
             } else {
                 Toast.makeText(this, "Fill the destine address", Toast.LENGTH_SHORT).show();
             }
-        } else {
-
-            calledUber = false;
-
         }
     }
 
@@ -340,7 +409,6 @@ public class PassengerActivity extends AppCompatActivity implements OnMapReadyCa
 
         llLocations.setVisibility(View.GONE);
         btCallUber.setText("Cancel");
-        calledUber = true;
     }
 
     private Address getAddress(String destineAddress) {
@@ -398,17 +466,22 @@ public class PassengerActivity extends AppCompatActivity implements OnMapReadyCa
 
                 FirebaseUserHelper.updateLocationData(latitude, longitude);
 
-                mMap.clear();
-                mMap.addMarker(
-                        new MarkerOptions()
-                                .position(myLocal)
-                                .title("My Local")
-                                .icon(BitmapDescriptorFactory.fromResource(R.drawable.usuario))
-                );
+                updateUIBasedOnRequestStatus(requestStatus);
 
-                mMap.moveCamera(
-                        CameraUpdateFactory.newLatLngZoom(myLocal, 18)
-                );
+                if (requestStatus != null && !requestStatus.isEmpty()) {
+                    if (requestStatus.equals(Request.STATUS_TRIP) || requestStatus.equals(Request.STATUS_FINISHED)) {
+                        mFusedLocationClient.removeLocationUpdates(mLocationCallback);
+                    } else {
+                        if (ActivityCompat.checkSelfPermission(PassengerActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                                && ActivityCompat.checkSelfPermission(PassengerActivity.this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                            ActivityCompat.requestPermissions(PassengerActivity.this,
+                                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION}, 1);
+                        } else {
+                            mFusedLocationClient.requestLocationUpdates(mLocationRequest,
+                                    mLocationCallback, Looper.myLooper());
+                        }
+                    }
+                }
             }
 
             @Override

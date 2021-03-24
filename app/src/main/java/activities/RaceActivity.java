@@ -168,7 +168,15 @@ public class RaceActivity extends AppCompatActivity implements OnMapReadyCallbac
             case Request.STATUS_FINISHED:
                 finishedRequest();
                 break;
+            case Request.STATUS_CANCELED:
+                canceledRequest();
+                break;
         }
+    }
+
+    private void canceledRequest() {
+        Toast.makeText(this, "Request was cancelled by passenger", Toast.LENGTH_SHORT).show();
+        startActivity(new Intent(this, RequestsActivity.class));
     }
 
     private void finishedRequest() {
@@ -495,6 +503,11 @@ public class RaceActivity extends AppCompatActivity implements OnMapReadyCallbac
         } else {
             Intent intent = new Intent(this, RequestsActivity.class);
             startActivity(intent);
+        }
+
+        if (requestStatus != null && !requestStatus.isEmpty()) {
+            request.setStatus(Request.STATUS_CLOSED);
+            request.updateStatus();
         }
         return false;
     }

@@ -20,6 +20,8 @@ public class Request implements Serializable {
     public static final String STATUS_ON_WAY = "onway";
     public static final String STATUS_TRIP = "trip";
     public static final String STATUS_FINISHED = "finished";
+    public static final String STATUS_CLOSED = "closed";
+    public static final String STATUS_CANCELED = "canceled";
 
     public Request() {
     }
